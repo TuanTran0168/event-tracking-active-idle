@@ -15,6 +15,7 @@ export type ActivityDetectorThresholds = Pick<
 export interface ActivityDetector {
   getState: () => ActivityState;
   updateOptions: (options: Partial<ActivityDetectorThresholds>) => void;
+  setSuspended: (suspended: boolean) => void;
   destroy: () => void;
 }
 
@@ -77,6 +78,7 @@ export function createActivityDetector(
   let idleTimerId: ReturnType<typeof setTimeout> | null = null;
   let visibilityTimerId: ReturnType<typeof setTimeout> | null = null;
   let destroyed = false;
+  let suspended = false;
 
   const setState = (next: ActivityState, timestamp: number) => {
     if (state === next) return;
@@ -117,6 +119,7 @@ export function createActivityDetector(
   };
 
   const handleInput = () => {
+    if (suspended) return;
     const now = Date.now();
     if (now - lastProcessedAt < inputThrottle) return;
     lastProcessedAt = now;
@@ -125,6 +128,7 @@ export function createActivityDetector(
   };
 
   const handleVisibilityChange = () => {
+    if (suspended) return;
     if (document.visibilityState === HIDDEN_VISIBILITY_STATE) {
       hiddenSince = Date.now();
       clearIdleTimer();
@@ -161,6 +165,15 @@ export function createActivityDetector(
         scheduleVisibilityTimer(
           Math.max(0, visibilityDebounce - (Date.now() - hiddenSince)),
         );
+      }
+    },
+    setSuspended: (next: boolean) => {
+      if (suspended === next) return;
+      suspended = next;
+      if (suspended) {
+        clearIdleTimer();
+        clearVisibilityTimer();
+        setState(IDLE, Date.now());
       }
     },
     destroy: () => {
