@@ -10,6 +10,7 @@ export interface UseActivityDetectorOptions {
   visibilityDebounce: number;
   inputThrottle: number;
   onStateChange?: (state: ActivityState, timestamp: number) => void;
+  suspended?: boolean;
 }
 
 export function useActivityDetector({
@@ -17,6 +18,7 @@ export function useActivityDetector({
   visibilityDebounce,
   inputThrottle,
   onStateChange,
+  suspended = false,
 }: UseActivityDetectorOptions): ActivityState {
   const [state, setState] = useState<ActivityState>("idle");
   const onStateChangeRef = useRef(onStateChange);
@@ -51,6 +53,10 @@ export function useActivityDetector({
       inputThrottle,
     });
   }, [idleTimeout, visibilityDebounce, inputThrottle]);
+
+  useEffect(() => {
+    detectorRef.current?.setSuspended(suspended);
+  }, [suspended]);
 
   return state;
 }
