@@ -57,6 +57,7 @@ export function ActivityTimerPreview() {
   const [inputLogs, setInputLogs] = useState<InputLog[]>([]);
   const [latestInput, setLatestInput] = useState<InputLog | null>(null);
   const [lastTransitionAt, setLastTransitionAt] = useState<number | null>(null);
+  const [suspended, setSuspended] = useState(false);
 
   const handleStateChange = useCallback((nextState: ActivityState, timestamp: number) => {
     const payload = { state: nextState, timestamp: new Date(timestamp).toISOString() };
@@ -82,6 +83,7 @@ export function ActivityTimerPreview() {
 
   const state = useActivityDetector({
     ...thresholds,
+    suspended,
     onStateChange: handleStateChange,
   });
   useInputMonitor(thresholds.inputThrottle, handleInput);
@@ -117,6 +119,7 @@ export function ActivityTimerPreview() {
             <small>{latestInput ? <><code>{latestInput.eventName}</code> · {latestInput.handled ? "Đã xử lý" : "Throttle"}</> : "Rê chuột, click hoặc cuộn để bắt đầu"}</small>
           </div>
           <span className={`state-badge ${isActive ? "active" : "idle"}`}>State: {isActive ? "ACTIVE" : "IDLE"}</span>
+          {suspended && <span className="state-badge suspended">⏸ SUSPENDED (dialog giả lập đang mở)</span>}
           <p className="status-caption">
             {latestInput ? `Nhận lúc: ${formatTime(latestInput.timestamp)}` : lastTransitionAt ? `Đổi state lần cuối: ${formatTime(lastTransitionAt)}` : "Hãy tương tác để bắt đầu kiểm tra."}
           </p>
@@ -146,6 +149,20 @@ export function ActivityTimerPreview() {
           <div className="action-row">
             <button className="primary-button" type="button" onClick={dispatchDemoInput}>Gửi event demo</button>
             <p>Idle timeout hiện tại: <strong>{timeoutInSeconds}s</strong></p>
+          </div>
+
+          <div className="action-row">
+            <button
+              className={suspended ? "primary-button" : "ghost-button"}
+              type="button"
+              onClick={() => setSuspended((current) => !current)}
+            >
+              {suspended ? "Đóng dialog giả lập (resume)" : "Mở dialog giả lập (suspend)"}
+            </button>
+            <p>
+              Suspend ép state về <strong>IDLE</strong> ngay lập tức và bỏ qua input trong lúc mở — dùng để test
+              hành vi "outside idle khi dialog mở".
+            </p>
           </div>
         </div>
       </section>
